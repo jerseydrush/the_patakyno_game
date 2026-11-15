@@ -1,3 +1,5 @@
+[![Version](https://img.shields.io/badge/version-5.0-pink.svg)](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
+
 # English:
 
 ### The Patakyno Game — point of no return
@@ -6,7 +8,7 @@ A Python-based interactive "game" and humorous prank quiz. Answering questions i
 
 Supported on Windows 10 and Windows 11.
 
-[Download page](https://github.com/Bubliktgg/the_patakyno_game/releases/tag/v4.0)
+[Download page](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
 
 ## ⚠️ Disclaimer: this is NOT a real game!
 
@@ -44,7 +46,7 @@ pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;file
 
 Поддерживаются Windows 10 и Windows 11.
 
-[Скачать](https://github.com/Bubliktgg/the_patakyno_game/releases/tag/v4.0)
+[Скачать](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
 
 ## ⚠️ Предупреждение: это НЕ настоящая игра!
 
