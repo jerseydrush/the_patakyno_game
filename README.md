@@ -8,7 +8,7 @@ A Python-based interactive "game" and humorous prank quiz. Answering questions i
 
 Supported on Windows 10 and Windows 11.
 
-[Download page](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
+[Download page](https://github.com/jerseydrush/the_patakyno_game/releases)
 
 ## ⚠️ Disclaimer: this is NOT a real game!
 
@@ -46,7 +46,7 @@ pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;file
 
 Поддерживаются Windows 10 и Windows 11.
 
-[Скачать](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
+[Скачать](https://github.com/jerseydrush/the_patakyno_game/releases)
 
 ## ⚠️ Предупреждение: это НЕ настоящая игра!
 
