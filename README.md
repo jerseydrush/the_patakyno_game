@@ -1,4 +1,4 @@
-[![Version](https://img.shields.io/badge/version-5.1-white.svg)](https://github.com/jerseydrush/the_patakyno_game/releases/tag/v5.0)
+[![Version](https://img.shields.io/badge/version-5.1-white.svg)](https://github.com/jerseydrush/the_patakyno_game/releases)
 
 # English:
 
