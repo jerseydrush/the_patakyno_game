@@ -3,6 +3,7 @@ import subprocess
 import sys
 import tkinter as tk
 from tkinter import Button, Tk, messagebox
+import webbrowser
 import winsound
 import comtypes
 from comtypes import COMMETHOD, GUID, HRESULT, IUnknown
@@ -210,13 +211,16 @@ class PatakynoGameApp:
     y = (screen_height // 2) - (height // 2)
     self.root.geometry(f"{width}x{height}+{x}+{y}")
 
-  def play_sound(self, filename):
+  def play_sound(self, filename, wait=False):
     """Play sound reliably using winsound for .wav files"""
     try:
       sound_path = resource_path(os.path.join("files", filename))
       if os.path.exists(sound_path):
+        flags = winsound.SND_FILENAME
+        if not wait:
+          flags |= winsound.SND_ASYNC
         winsound.PlaySound(
-            sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC
+            sound_path, flags
         )
     except Exception as e:
       print(f"Error playing sound {filename}: {e}")
@@ -404,6 +408,9 @@ class PatakynoGameApp:
           20, 0, first_wallpaper, 3
       ):
         raise ctypes.WinError(ctypes.get_last_error())
+      desktop.SetSlideshow(state["slideshow"])
+      desktop.SetSlideshowOptions(*state["slideshow_options"])
+      desktop.Enable(bool(state["status"] & 0x01))
 
   def restore_registry_settings(self):
     import winreg
@@ -717,6 +724,57 @@ class PatakynoGameApp:
         canvas, self.WINDOW_WIDTH // 2 + 95, 244, 170, "Русский",
         lambda: self.start_game("ru"),
     )
+    canvas.create_text(
+        12,
+        self.WINDOW_HEIGHT - 12,
+        text="Jersey Drush",
+        font=("Segoe UI", 8),
+        fill="#AAAAAA",
+        anchor="sw",
+        tags=("author_link",),
+    )
+    canvas.tag_bind(
+        "author_link",
+        "<Button-1>",
+        lambda event: webbrowser.open("https://github.com/jerseydrush/"),
+    )
+    canvas.tag_bind(
+        "author_link",
+        "<Enter>",
+        lambda event: canvas.config(cursor="hand2"),
+    )
+    canvas.tag_bind(
+        "author_link",
+        "<Leave>",
+        lambda event: canvas.config(cursor=""),
+    )
+
+    canvas.create_text(
+        self.WINDOW_WIDTH - 12,
+        self.WINDOW_HEIGHT - 12,
+        text="v5.1",
+        font=("Segoe UI", 8),
+        fill="#AAAAAA",
+        anchor="se",
+        tags=("version_link",),
+    )
+    canvas.tag_bind(
+        "version_link",
+        "<Button-1>",
+        lambda event: webbrowser.open(
+            "https://github.com/jerseydrush/the_patakyno_game/releases/"
+        ),
+    )
+    canvas.tag_bind(
+        "version_link",
+        "<Enter>",
+        lambda event: canvas.config(cursor="hand2"),
+    )
+    canvas.tag_bind(
+        "version_link",
+        "<Leave>",
+        lambda event: canvas.config(cursor=""),
+    )
 
   def start_game(self, lang):
     """Start the quiz with the selected language"""
@@ -783,7 +841,12 @@ class PatakynoGameApp:
   def handle_answer(self, answer_type):
     """Handle correct or incorrect answers"""
     if answer_type == "correct":
-      self.play_sound("correct.wav")
+      next_question_index = self.current_question_index + 1
+      next_question_has_sound = (
+          next_question_index < len(self.questions)
+          and "sound" in self.questions[next_question_index][self.lang]
+      )
+      self.play_sound("correct.wav", wait=next_question_has_sound)
       self.current_question_index += 1
       self.show_question()
     else:
@@ -801,37 +864,58 @@ class PatakynoGameApp:
           messagebox.showerror(
               "Wallpaper change failed", str(e), parent=self.root
           )
+        warning_title = (
+            "Patakyno Warning"
+            if self.lang == "en"
+            else "Предупреждение Патакино"
+        )
+        warning_text = (
+            (
+                "-1000 PATAKYNO CREDITS\n"
+                + (
+                    "Your PataCoins are now frozen."
+                    if wallpaper_changed
+                    else "Wallpaper could not be changed."
+                )
+            )
+            if self.lang == "en"
+            else (
+                "-1000 КРЕДИТОВ ПАТАКИНО\n"
+                + (
+                    "Ваши ПатаКоины теперь заморожены."
+                    if wallpaper_changed
+                    else "Не удалось изменить обои."
+                )
+            )
+        )
         messagebox.showwarning(
-            "Patakyno Warning",
-            "-1000 PATAKYNO CREDITS\n"
-            + (
-                "Wallpaper changed!"
-                if wallpaper_changed
-                else "Wallpaper could not be changed."
-            ),
+            warning_title, warning_text, parent=self.root
         )
       elif self.wrong_count == 2:
         # 2nd wrong: switch app theme to deep dark red mode AND force system manual dark red accent
         self.is_dark_red_theme = True
-        accent_changed = self.force_windows_manual_dark_red_accent()
+        self.force_windows_manual_dark_red_accent()
+        warning = (
+            "-150000 PATAKYNO CREDITS\n"
+            "You have been declared wanted in the United Patakia."
+            if self.lang == "en"
+            else (
+                "-150000 КРЕДИТОВ ПАТАКИНО\n"
+                "Вы объявлены в розыск в Объединении Патакия."
+            )
+        )
         messagebox.showwarning(
-            "Patakyno Warning",
-            "-1000 PATAKYNO CREDITS\n"
-            "Deep Dark Red Mode activated. "
-            + (
-                "System accent shifted to Manual Dark Red!"
-                if accent_changed
-                else "System accent could not be changed."
-            ),
+            "Patakyno Warning", warning, parent=self.root
         )
       elif self.wrong_count >= 3:
         # 3rd wrong: spy detection message and restart the computer
         msg = (
-            "Разведка Патакино установила, что вы шпион РФ!"
+            "-9999999 PATAKYNO CREDITS\n"
+            "Los Pedrilos уже выехали за тобой!"
             if self.lang == "ru"
             else (
-                "Patakyno Intelligence has determined that you are a Russian"
-                " spy!"
+                "-9999999 КРЕДИТОВ ПАТАКИНО\n"
+                "Los Pedrilos are already on their way for you!"
             )
         )
         messagebox.showerror("SECURITY ALERT", msg)
