@@ -862,7 +862,13 @@ class PatakynoGameApp:
         except OSError as e:
           wallpaper_changed = False
           messagebox.showerror(
-              "Wallpaper change failed", str(e), parent=self.root
+              (
+                  "Wallpaper change failed"
+                  if self.lang == "en"
+                  else "Не удалось изменить обои"
+              ),
+              str(e),
+              parent=self.root,
           )
         warning_title = (
             "Patakyno Warning"
@@ -904,21 +910,31 @@ class PatakynoGameApp:
                 "Вы объявлены в розыск в Объединении Патакия."
             )
         )
+        warning_title = (
+            "Patakyno Warning"
+            if self.lang == "en"
+            else "Предупреждение Патакино"
+        )
         messagebox.showwarning(
-            "Patakyno Warning", warning, parent=self.root
+            warning_title, warning, parent=self.root
         )
       elif self.wrong_count >= 3:
         # 3rd wrong: spy detection message and restart the computer
         msg = (
-            "-9999999 PATAKYNO CREDITS\n"
+            "-9999999 КРЕДИТОВ ПАТАКИНО\n"
             "Los Pedrilos уже выехали за тобой!"
             if self.lang == "ru"
             else (
-                "-9999999 КРЕДИТОВ ПАТАКИНО\n"
+                "-9999999 PATAKYNO CREDITS\n"
                 "Los Pedrilos are already on their way for you!"
             )
         )
-        messagebox.showerror("SECURITY ALERT", msg)
+        alert_title = (
+            "SECURITY ALERT"
+            if self.lang == "en"
+            else "ТРЕВОГА БЕЗОПАСНОСТИ"
+        )
+        messagebox.showerror(alert_title, msg)
         self.close_app()
 
         # Trigger computer restart in 10 seconds
