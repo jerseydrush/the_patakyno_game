@@ -1,4 +1,4 @@
-[![Version](https://img.shields.io/badge/version-5.2-white.svg)](https://github.com/jerseydrush/the_patakyno_game/releases)
+[![Version](https://img.shields.io/badge/version-5.2-purple.svg)](https://github.com/jerseydrush/the_patakyno_game/releases)
 
 # English:
 
@@ -20,9 +20,9 @@ The app is intended solely for educational and entertainment purposes. A third w
 * **5-Question Interactive Quiz:** Features custom character images, background visuals, and sound effects (`.wav`).
 * **Progressive Consequences for Wrong Answers:**
   * **1st Mistake:** Deducts 1000 Patakyno Credits and changes your desktop wallpaper.
-  * **2nd Mistake:** Deducts 1000 Patakyno Credits, switches the application into Deep Dark Red Mode, and forces Windows into Manual accent mode with a deep dark red system color.
+  * **2nd Mistake:** Deducts 1000 Patakyno Credits, switches the application into Deep Dark Red Mode, forces Windows into Manual accent mode with a deep dark red system color, and fills the entire desktop with a heap of Pedro icons.
   * **3rd Mistake:** Triggers a security alert from Patakyno Intelligence and initiates a **10-second system restart**.
-* **Automatic Restoration:** Completing the quiz restores your previous wallpaper, slideshow/solid-color settings, and accent colors captured before the changes were made. Closing the app early leaves the changes in place.
+* **Automatic Restoration:** Completing the quiz restores your previous wallpaper, slideshow/solid-color settings, and accent colors captured before the changes were made, while the Pedro icons are removed. Closing the app early leaves the changes in place.
 
 ## Setup & Building:
 
@@ -33,7 +33,7 @@ python -m pip install Pillow comtypes pyinstaller
 
 Build into a single standalone `.exe`:
 ```bash
-pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;files" --hidden-import=comtypes patakyno_game_10.py
+pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;files" --hidden-import=comtypes patakyno_game.py
 ```
 
 ---
@@ -58,9 +58,9 @@ pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;file
 * **Викторина из 5 вопросов:** С уникальными иллюстрациями персонажей, фоновым оформлением и звуковыми эффектами (`.wav`).
 * **Прогрессивные наказания за ошибки:**
   * **1-я ошибка:** Списание 1000 Patakyno Credits и смена обоев рабочего стола.
-  * **2-я ошибка:** Списание 1000 Patakyno Credits, переход окна программы в тёмно-красный режим и принудительное переключение акцентного цвета Windows в ручной тёмно-красный режим.
+  * **2-я ошибка:** Списание 1000 Patakyno Credits, переход окна программы в тёмно-красный режим, принудительное переключение акцентного цвета Windows в ручной тёмно-красный режим и заполнение всего рабочего стола иконками Педро.
   * **3-я ошибка:** Предупреждение от Разведки Патакино и запуск **перезагрузки ПК через 10 секунд**.
-* **Автоматическое восстановление:** После успешного прохождения всех вопросов исходные обои (включая слайд-шоу или сплошной цвет) и акцентные цвета системы восстанавливаются. При досрочном закрытии игры изменения остаются.
+* **Автоматическое восстановление:** После успешного прохождения всех вопросов исходные обои (включая слайд-шоу или сплошной цвет), акцентные цвета системы восстанавливаются, а иконки Педро удаляются. При досрочном закрытии игры изменения остаются.
 
 ## Установка и сборка:
 
@@ -71,5 +71,5 @@ python -m pip install Pillow comtypes pyinstaller
 
 Сборка в один исполняемый `.exe` файл:
 ```bash
-pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;files" --hidden-import=comtypes patakyno_game_10.py
+pyinstaller --noconsole --onefile --icon=files/pataka.ico --add-data "files;files" --hidden-import=comtypes patakyno_game.py
 ```
