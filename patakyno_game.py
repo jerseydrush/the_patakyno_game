@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 import tkinter as tk
@@ -8,14 +9,17 @@ import winsound
 import comtypes
 from comtypes import COMMETHOD, GUID, HRESULT, IUnknown
 from ctypes import POINTER, c_int, c_uint
-from ctypes.wintypes import LPCWSTR, RECT
+from ctypes.wintypes import HWND, LPARAM, LPCWSTR, RECT
 from PIL import Image, ImageTk
 
 try:
   import ctypes
 
+  ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+      "com.jerseydrush.patakynogame.v5_2"
+  )
   ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except:
+except Exception:
   pass
 
 
@@ -95,6 +99,7 @@ class PatakynoGameApp:
     self.original_registry_keys = None
     self.com_initialized = False
     self.completed_successfully = False
+    self.created_desktop_files = []
 
     self.root.title("The Patakyno Game")
     self.root.geometry(f"{self.WINDOW_WIDTH}x{self.WINDOW_HEIGHT}")
@@ -102,16 +107,28 @@ class PatakynoGameApp:
     self.root.protocol("WM_DELETE_WINDOW", self.close_app)
 
     # Set application icon from files folder
-    try:
-      icon_path = resource_path(os.path.join("files", "pataka.ico"))
-      if os.path.exists(icon_path):
+    icon_path = resource_path(os.path.join("files", "pataka.ico"))
+    if os.path.exists(icon_path):
+      try:
+        self.root.iconbitmap(default=icon_path)
         self.root.iconbitmap(icon_path)
-    except Exception as e:
-      print(f"Error loading icon: {e}")
+      except Exception as e:
+        print(f"iconbitmap error: {e}")
+
+      # Fallback via Pillow and iconphoto in case Tcl/Tk struggles with .ico
+      try:
+        with Image.open(icon_path) as ico_img:
+          self._app_icon_photo = ImageTk.PhotoImage(
+              ico_img.convert("RGBA"), master=self.root
+          )
+          self.root.iconphoto(True, self._app_icon_photo)
+      except Exception as e:
+        print(f"iconphoto error: {e}")
 
     # Paths to resources
     self.wallpaper_path = resource_path(os.path.join("files", "wallpaper.png"))
     self.background_path = resource_path(os.path.join("files", "background.png"))
+    self.spam_icon_path = resource_path(os.path.join("files", "....png"))
     try:
       with Image.open(self.background_path) as image:
         self.background_source = image.convert("RGBA")
@@ -199,6 +216,7 @@ class PatakynoGameApp:
     self.apply_theme_colors()
     self.show_welcome_screen()
     self.root.after_idle(self.center_window)
+    self.root.after(250, self.minimize_other_windows)
 
   def center_window(self):
     """Centers the window precisely on the user's screen"""
@@ -490,9 +508,209 @@ class PatakynoGameApp:
       comtypes.CoUninitialize()
       self.com_initialized = False
 
+  def get_desktop_path(self):
+    """Get the actual user Desktop folder path via Windows Shell API."""
+    buf = ctypes.create_unicode_buffer(260)
+    # CSIDL_DESKTOPDIRECTORY = 0x0010
+    if ctypes.windll.shell32.SHGetFolderPathW(None, 0x0010, None, 0, buf) == 0:
+      return buf.value
+    return os.path.join(os.path.expanduser("~"), "Desktop")
+
+  def calculate_desktop_icon_count(self):
+    """Calculate how many icons are needed to fill the primary work area."""
+    rect = RECT()
+    # SPI_GETWORKAREA = 0x0030 (screen area excluding taskbar)
+    if ctypes.windll.user32.SystemParametersInfoW(
+        0x0030, 0, ctypes.byref(rect), 0
+    ):
+      work_w = rect.right - rect.left
+      work_h = rect.bottom - rect.top
+    else:
+      work_w = self.root.winfo_screenwidth()
+      work_h = self.root.winfo_screenheight()
+
+    # Account for Windows DPI scaling (96 DPI = 100%)
+    try:
+      dpi = ctypes.windll.user32.GetDpiForSystem()
+      scale = dpi / 96.0
+    except Exception:
+      scale = 1.0
+
+    # Standard Windows medium desktop icon grid cell is ~76x100 px at 100% scale
+    cell_w = int(76 * scale)
+    cell_h = int(100 * scale)
+
+    cols = max(1, work_w // cell_w)
+    rows = max(1, work_h // cell_h)
+    total_cells = cols * rows
+
+    # Clamp between 50 and 400 so Explorer stays responsive on any monitor
+    return max(50, min(total_cells, 400))
+
+  def refresh_desktop(self):
+    """Notify Windows Explorer to immediately refresh Desktop icons."""
+    # SHCNE_ASSOCCHANGED = 0x08000000, SHCNF_IDLIST = 0x0000
+    ctypes.windll.shell32.SHChangeNotify(0x08000000, 0x0000, None, None)
+
+  def flood_desktop_icons(self):
+    """Fill the desktop with copies of ....png on the 2nd wrong answer."""
+    if not os.path.exists(self.spam_icon_path):
+      print(f"Desktop icon source not found: {self.spam_icon_path}")
+      return
+    if self.created_desktop_files:
+      return
+
+    desktop_dir = self.get_desktop_path()
+    existing_items = len(os.listdir(desktop_dir))
+    count = max(
+        20, min(self.calculate_desktop_icon_count() - existing_items, 400)
+    )
+
+    for i in range(1, count + 1):
+      filename = f"pedro_{i:03d}.png"
+      dest_path = os.path.join(desktop_dir, filename)
+      try:
+        shutil.copy2(self.spam_icon_path, dest_path)
+        self.created_desktop_files.append(dest_path)
+      except OSError as e:
+        print(f"Error creating desktop file {dest_path}: {e}")
+        break
+
+    self.refresh_desktop()
+
+  def cleanup_desktop_icons(self):
+    """Remove only the icons created by the game."""
+    if not self.created_desktop_files:
+      return []
+
+    errors = []
+    remaining = []
+    for file_path in self.created_desktop_files:
+      try:
+        if os.path.exists(file_path):
+          os.remove(file_path)
+      except OSError as e:
+        errors.append(f"Could not remove {os.path.basename(file_path)}: {e}")
+        remaining.append(file_path)
+
+    self.created_desktop_files = remaining
+    self.refresh_desktop()
+    return errors
+
+  def minimize_other_windows(self):
+    """Minimize visible top-level windows belonging to other processes."""
+    try:
+      user32 = ctypes.windll.user32
+      current_pid = os.getpid()
+      self.root.update_idletasks()
+      game_hwnd = int(self.root.winfo_id())
+      game_root_hwnd = user32.GetAncestor(game_hwnd, 2) or game_hwnd
+      game_owner_hwnd = user32.GetAncestor(game_hwnd, 3) or game_root_hwnd
+
+      # Configure 64-bit safe types for WinAPI calls
+      user32.GetAncestor.argtypes = [HWND, ctypes.c_uint]
+      user32.GetAncestor.restype = HWND
+      user32.GetWindow.argtypes = [HWND, ctypes.c_uint]
+      user32.GetWindow.restype = HWND
+      user32.GetWindowLongPtrW.argtypes = [HWND, ctypes.c_int]
+      user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
+      user32.GetWindowThreadProcessId.argtypes = [
+          HWND,
+          POINTER(ctypes.c_ulong),
+      ]
+      user32.GetWindowThreadProcessId.restype = ctypes.c_ulong
+      user32.PostMessageW.argtypes = [
+          HWND,
+          ctypes.c_uint,
+          ctypes.c_size_t,
+          ctypes.c_ssize_t,
+      ]
+      user32.PostMessageW.restype = ctypes.c_int
+      user32.ShowWindow.argtypes = [HWND, ctypes.c_int]
+      user32.ShowWindow.restype = ctypes.c_int
+
+      ignored_classes = {
+          "Progman",
+          "WorkerW",
+          "Shell_TrayWnd",
+          "Shell_SecondaryTrayWnd",
+          "Windows.UI.Core.CoreWindow",
+          "MultitaskingViewFrame",
+          "XamlExplorerHostIslandWindow",
+          "TopLevelWindowForOverflowXamlIsland",
+      }
+      ignored_titles = {"Program Manager", "Windows Input Experience"}
+
+      sw_minimize = 6
+      ga_root = 2
+      ga_root_owner = 3
+      gw_owner = 4
+      gwl_exstyle = -20
+      ws_ex_toolwindow = 0x00000080
+      wm_syscommand = 0x0112
+      sc_minimize = 0xF020
+
+      protected_hwnds = {game_hwnd, game_root_hwnd, game_owner_hwnd}
+      targets = []
+
+      wnd_enum_proc = ctypes.WINFUNCTYPE(ctypes.c_bool, HWND, LPARAM)
+
+      def enum_callback(hwnd, _):
+        if hwnd in protected_hwnds:
+          return True
+
+        root_of_hwnd = user32.GetAncestor(hwnd, ga_root)
+        root_owner_of_hwnd = user32.GetAncestor(hwnd, ga_root_owner)
+        if (
+            root_of_hwnd in protected_hwnds
+            or root_owner_of_hwnd in protected_hwnds
+        ):
+          return True
+
+        if not user32.IsWindowVisible(hwnd) or user32.IsIconic(hwnd):
+          return True
+
+        if user32.GetWindow(hwnd, gw_owner):
+          return True
+
+        ex_style = user32.GetWindowLongPtrW(hwnd, gwl_exstyle)
+        if ex_style & ws_ex_toolwindow:
+          return True
+
+        class_buf = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, class_buf, 256)
+        if class_buf.value in ignored_classes:
+          return True
+
+        title_len = user32.GetWindowTextLengthW(hwnd)
+        if title_len <= 0:
+          return True
+
+        title_buf = ctypes.create_unicode_buffer(title_len + 1)
+        user32.GetWindowTextW(hwnd, title_buf, title_len + 1)
+        if title_buf.value in ignored_titles:
+          return True
+
+        pid = ctypes.c_ulong(0)
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value == current_pid:
+          return True
+
+        targets.append(hwnd)
+        return True
+
+      user32.EnumWindows(wnd_enum_proc(enum_callback), 0)
+
+      for hwnd in targets:
+        if not user32.ShowWindow(hwnd, sw_minimize):
+          user32.PostMessageW(hwnd, wm_syscommand, sc_minimize, 0)
+    except Exception as e:
+      print(f"Error minimizing windows: {e}")
+
   def close_app(self):
     if self.completed_successfully:
       errors = self.restore_system_settings()
+      errors.extend(self.cleanup_desktop_icons())
       if errors:
         messagebox.showerror(
             "System settings restore failed",
@@ -752,7 +970,7 @@ class PatakynoGameApp:
     canvas.create_text(
         self.WINDOW_WIDTH - 12,
         self.WINDOW_HEIGHT - 12,
-        text="v5.1",
+        text="v5.2",
         font=("Segoe UI", 8),
         fill="#AAAAAA",
         anchor="se",
@@ -898,9 +1116,10 @@ class PatakynoGameApp:
             warning_title, warning_text, parent=self.root
         )
       elif self.wrong_count == 2:
-        # 2nd wrong: switch app theme to deep dark red mode AND force system manual dark red accent
+        # 2nd wrong: switch app theme to deep dark red mode, force system accent & flood desktop
         self.is_dark_red_theme = True
         self.force_windows_manual_dark_red_accent()
+        self.flood_desktop_icons()
         warning = (
             "-150000 PATAKYNO CREDITS\n"
             "You have been declared wanted in the United Patakia."
@@ -953,6 +1172,7 @@ class PatakynoGameApp:
     self.completed_successfully = True
     self.is_dark_red_theme = False  # Reset app theme back to modern dark/blue on success
     restore_errors = self.restore_system_settings()
+    restore_errors.extend(self.cleanup_desktop_icons())
     self.clear_window()
     canvas = self.create_screen_canvas()
 
